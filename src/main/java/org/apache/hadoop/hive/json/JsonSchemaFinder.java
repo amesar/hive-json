@@ -22,6 +22,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonStreamParser;
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
 
 import java.io.FileInputStream;
 import java.io.FileReader;
@@ -38,6 +40,8 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 public class JsonSchemaFinder {
+  private static Options opts = new Options();
+
   private static final Pattern HEX_PATTERN =
       Pattern.compile("^([0-9a-fA-F][0-9a-fA-F])*$");
   private static final Pattern DATE_PATTERN =
@@ -510,7 +514,7 @@ public class JsonSchemaFinder {
   }
 
   private static void printTopType(PrintStream out, StructType type) {
-    out.println("create table tbl (");
+    out.println("create table "+opts.table+" (");
     boolean first = true;
     for(Map.Entry<String, HiveType> field: type.fields.entrySet()) {
       if (!first) {
@@ -530,9 +534,12 @@ public class JsonSchemaFinder {
   }
 
   public static void main(String[] args) throws Exception {
+    JCommander jcommander = new JCommander(opts, args);
+
     HiveType result = null;
     int count = 0;
-    for (String filename: args) {
+    //for (String filename: args) {
+    for (String filename: opts.files) {
       System.out.println("Reading " + filename);
       System.out.flush();
       java.io.Reader reader;
@@ -549,8 +556,22 @@ public class JsonSchemaFinder {
         result = mergeType(result, type);
       }
     }
-    System.out.println(count + " records read");
+    System.out.println(count + " records read, "+args.length+" files read");
     System.out.println();
     printTopType(System.out, (StructType) result);
+  }
+
+  static class Options {
+    @Parameter(names = { "-t", "--table" }, required=true )
+    String table ;
+
+    @Parameter(names = { "-e", "--external" }, description = "external", required=false )
+    boolean isExternalTable ;
+
+    @Parameter(names = { "-l", "--location" }, description = "location", required=false )
+    String location ;
+
+    @Parameter(description = "Files")
+    private List<String> files = new ArrayList<>();
   }
 }
