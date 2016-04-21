@@ -514,7 +514,8 @@ public class JsonSchemaFinder {
   }
 
   private static void printTopType(PrintStream out, StructType type) {
-    out.println("create table "+opts.table+" (");
+    String tableType = opts.isExternalTable ? "EXTERNAL " : "";
+    out.println("CREATE "+tableType+"TABLE "+opts.table+" (");
     boolean first = true;
     for(Map.Entry<String, HiveType> field: type.fields.entrySet()) {
       if (!first) {
@@ -531,6 +532,8 @@ public class JsonSchemaFinder {
     }
     out.println();
     out.println(")");
+    if (opts.serde != null) out.println("ROW FORMAT SERDE '"+opts.serde+"'");
+    if (opts.location != null) out.println("LOCATION '"+opts.location+"'");
   }
 
   public static void main(String[] args) throws Exception {
@@ -565,11 +568,14 @@ public class JsonSchemaFinder {
     @Parameter(names = { "-t", "--table" }, required=true )
     String table ;
 
-    @Parameter(names = { "-e", "--external" }, description = "external", required=false )
+    @Parameter(names = { "-e", "--isExternalTable" }, description = "external", required=false )
     boolean isExternalTable ;
 
     @Parameter(names = { "-l", "--location" }, description = "location", required=false )
     String location ;
+
+    @Parameter(names = { "-s", "--serde" }, description = "serde", required=false )
+    String serde ;
 
     @Parameter(description = "Files")
     private List<String> files = new ArrayList<>();
